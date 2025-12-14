@@ -1,0 +1,83 @@
+# ============================================================
+# Project 2: Leverage Feasibility Frontier
+# Ex-ante assumptions (frozen)
+# ============================================================
+
+model_scope:
+  description: >
+    Determine admissible leverage (LTV) for a levered rental cashflow under
+    explicit downside constraints. This repo is stress testing + feasibility,
+    not forecasting.
+  geography: UK
+  asset_type: Residential rental property
+  modelling_intent: Risk constraints > optimisation
+
+time:
+  horizon_years: 1
+  time_step: annual
+
+base_cashflow:
+  operating_cost_ratio: 0.20   # c : fraction of realised rent
+
+financing:
+  interest_only: true
+  base_interest_rate_value: 0.05  # base rate used when computing shocked rates
+
+# ---------------------------------------------
+# LTV sweep grid (the "frontier" axis)
+# ---------------------------------------------
+ltv_sweep:
+  start: 0.40
+  stop: 0.85
+  step: 0.01
+
+# ---------------------------------------------
+# Shock distributions (for failure probability)
+# You can treat these as scenario weights (not forecasts).
+# We assume independence between occupancy and rate shock.
+# ---------------------------------------------
+stress_distribution:
+  interest_rate_shock_bp:
+    values: [0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300]
+    # Light mass near base, heavier tail than normal:
+    weights: [0.10, 0.10, 0.10, 0.09, 0.09, 0.08, 0.08, 0.07, 0.07, 0.06, 0.06, 0.05, 0.05]
+
+  occupancy_multiplier:
+    values: [0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00]
+    # Most weight around 0.90–0.95, some tail risk:
+    weights: [0.06, 0.09, 0.14, 0.20, 0.22, 0.18, 0.11]
+
+# ---------------------------------------------
+# Risk constraints (what makes LTV "admissible")
+# ---------------------------------------------
+risk_constraints:
+  min_dscr: 1.0
+  min_cashflow: 0.0
+
+  # Probabilistic constraint (over the joint scenario distribution)
+  max_failure_probability: 0.10
+
+  # Deterministic "stress test" constraint (single hard scenario)
+  stress_test:
+    occupancy: 0.85
+    rate_shock_bp: 200
+
+# ---------------------------------------------
+# Calibration presets (scale-free)
+# We normalize price = 1 and rent = gross_yield * price.
+# Debt = LTV * price.
+#
+# So theta = R/D = gross_yield / LTV.
+# ---------------------------------------------
+calibration:
+  default_preset: durham_typical
+  presets:
+    durham_typical:
+      description: "Transferable heuristic: ~10% gross yield."
+      gross_yield: 0.10
+
+    rightmove_example:
+      description: "Worked example: one listing (frozen inputs)."
+      purchase_price_gbp: 550000
+      annual_rent_gbp: 42500
+      # gross_yield can be omitted; it will be computed from price/rent.
