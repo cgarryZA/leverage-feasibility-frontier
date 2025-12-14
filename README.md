@@ -69,5 +69,3 @@ python src/plots.py
 
 python src/simulate.py --preset rightmove_example
 python src/plots.py --preset rightmove_example
-
----
